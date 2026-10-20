@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Riddle Rally Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(-5%); }
+            50% { transform: translateY(0); }
+        }
+        .animate-bounce-slow { animation: bounce-slow 3s infinite ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-md py-6 px-4">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-black tracking-tight flex items-center gap-2">
+                    🎯 Riddle Rally Builder
+                </h1>
+                <p class="text-indigo-100 text-sm mt-1">Create an interactive puzzle adventure for your class — 100% Free!</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="switchTab('builder')" id="btn-builder" class="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 text-white font-semibold rounded-lg text-sm transition shadow">🛠️ Builder Mode</button>
+                <button onclick="switchTab('play')" id="btn-play" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg text-sm transition shadow">🎮 Play Rally</button>
+                <button onclick="switchTab('hosting')" id="btn-hosting" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg text-sm transition shadow">🚀 Free Hosting</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-4xl w-full mx-auto p-4 sm:p-6">
+
+        <!-- BUILDER TAB -->
+        <section id="tab-builder" class="space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+                <h2 class="text-xl font-bold text-slate-900 border-b pb-3">Step 1: Set the Target Location</h2>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Secret Target Word (Max 5 letters recommended):</label>
+                    <input type="text" id="targetWord" value="PARK" maxlength="10" class="w-full sm:w-64 px-4 py-2 border rounded-lg uppercase font-bold tracking-wider text-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. PARK">
+                    <p class="text-xs text-slate-500 mt-1">Each letter corresponds to one of the 5 puzzle stations below!</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
+                <h2 class="text-xl font-bold text-slate-900 border-b pb-3">Step 2: Configure Your 5 Puzzle Stations</h2>
+                <div id="stationsContainer" class="space-y-6">
+                    <!-- Populated dynamically -->
+                </div>
+                <button onclick="saveRally()" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow transition">Save & Test Rally 🎉</button>
+            </div>
+        </section>
+
+        <!-- PLAY TAB -->
+        <section id="tab-play" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 text-center space-y-3">
+                <h2 class="text-2xl font-black text-indigo-600">Riddle Rally Challenge!</h2>
+                <p class="text-slate-600">Solve all 5 stations to discover the secret target location!</p>
+                
+                <!-- Progress Indicator -->
+                <div class="flex justify-center items-center gap-2 pt-2" id="progressIndicators">
+                    <!-- Dynamically generated indicators -->
+                </div>
+            </div>
+
+            <!-- Active Station Card -->
+            <div id="activeStationCard" class="bg-white rounded-2xl shadow-md border border-slate-200 p-6 sm:p-8 space-y-6">
+                <!-- Dynamically filled station gameplay -->
+            </div>
+        </section>
+
+        <!-- HOSTING TAB -->
+        <section id="tab-hosting" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+                <h2 class="text-xl font-bold text-slate-900 border-b pb-3">How to Host for FREE (GitHub & Vercel)</h2>
+                <ol class="list-decimal list-inside space-y-3 text-slate-700 text-sm sm:text-base">
+                    <li><strong class="text-slate-900">Save the file:</strong> Copy this entire code, save it as <code class="bg-slate-100 px-2 py-1 rounded font-mono text-indigo-600">index.html</code> on your computer.</li>
+                    <li><strong class="text-slate-900">Upload to GitHub:</strong> Create a new free repository on <a href="https://github.com" target="_blank" class="text-indigo-600 underline font-semibold">GitHub.com</a> and upload your <code class="bg-slate-100 px-2 py-1 rounded font-mono text-indigo-600">index.html</code> file.</li>
+                    <li><strong class="text-slate-900">Deploy on Vercel:</strong> Go to <a href="https://vercel.com" target="_blank" class="text-indigo-600 underline font-semibold">Vercel.com</a> (sign up free with GitHub), click <span class="font-semibold text-slate-900">"Add New Project"</span>, and import your GitHub repository.</li>
+                    <li><strong class="text-slate-900">Done!</strong> Vercel will instantly give you a free live URL (e.g., <code class="bg-slate-100 px-2 py-1 rounded font-mono text-indigo-600">your-rally.vercel.app</code>) to share with your students! No money required.</li>
+                </ol>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-xs text-slate-400">
+        Riddle Rally Builder • Built with HTML, Tailwind CSS, & Vanilla JS
+    </footer>
+
+    <!-- Application Script -->
+    <script>
+        // Default Rally Data (5 Stations corresponding to P-A-R-K)
+        let rallyData = {
+            targetWord: "PARK",
+            stations: [
+                { type: "Crossword", clue: "Opposite of day", answer: "NIGHT", targetCharIndex: 0 },
+                { type: "Math Puzzle", clue: "What is 12 + 8 ÷ 2?", answer: "16", targetCharIndex: 1 },
+                { type: "Word Scramble", clue: "Unscramble: OCOLH (School subject)", answer: "LOCAL", targetCharIndex: 2 },
+                { type: "Riddle", clue: "I have keys but open no locks. What am I?", answer: "PIANO", targetCharIndex: 3 },
+                { type: "Cipher", clue: "A=1, B=2... Decode: 3-1-14-20-25", answer: "CANTY", targetCharIndex: 4 }
+            ]
+        };
+
+        let currentStationIndex = 0;
+        let solvedStations = [false, false, false, false, false];
+
+        const puzzleTypes = ["Crossword", "Math Puzzle", "Word Scramble", "Riddle", "Cipher"];
+
+        function initBuilder() {
+            document.getElementById('targetWord').value = rallyData.targetWord;
+            renderStationsBuilder();
+        }
+
+        function renderStationsBuilder() {
+            const container = document.getElementById('stationsContainer');
+            container.innerHTML = '';
+
+            rallyData.stations.forEach((station, index) => {
+                const html = `
+                    <div class="p-4 bg-slate-50 border rounded-xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-indigo-600">Station ${index + 1}</span>
+                            <select id="type-${index}" onchange="updateStationType(${index})" class="px-2 py-1 border rounded text-sm bg-white font-medium">
+                                ${puzzleTypes.map(t => `<option ${t === station.type ? 'selected' : ''}>${t}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Clue / Question:</label>
+                                <input type="text" id="clue-${index}" value="${station.clue}" class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Secret Answer:</label>
+                                <input type="text" id="answer-${index}" value="${station.answer}" class="w-full px-3 py-2 border rounded-lg text-sm bg-white uppercase">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        function updateStationType(index) {
+            const select = document.getElementById(`type-${index}`);
+            rallyData.stations[index].type = select.value;
+        }
+
+        function saveRally() {
+            const wordInput = document.getElementById('targetWord').value.toUpperCase().trim();
+            if (!wordInput) {
+                alert("Please enter a target word!");
+                return;
+            }
+            rallyData.targetWord = wordInput;
+
+            for (let i = 0; i < rallyData.stations.length; i++) {
+                const clueVal = document.getElementById(`clue-${i}`).value;
+                const ansVal = document.getElementById(`answer-${i}`).value.toUpperCase().trim();
+                rallyData.stations[i].clue = clueVal;
+                rallyData.stations[i].answer = ansVal;
+            }
+
+            alert("Riddle Rally saved successfully! Switching to Play mode to test.");
+            switchTab('play');
+        }
+
+        function switchTab(tab) {
+            ['builder', 'play', 'hosting'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`btn-${t}`).classList.remove('bg-indigo-700', 'shadow-inner');
+                document.getElementById(`btn-${t}`).classList.add('bg-indigo-500');
+            });
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`btn-${tab}`).classList.remove('bg-indigo-500');
+            document.getElementById(`btn-${tab}`).classList.add('bg-indigo-700', 'shadow-inner');
+
+            if (tab === 'play') {
+                initPlayMode();
+            }
+        }
+
+        function initPlayMode() {
+            currentStationIndex = 0;
+            solvedStations = new Array(rallyData.stations.length).fill(false);
+            renderPlayProgress();
+            renderActiveStation();
+        }
+
+        function renderPlayProgress() {
+            const container = document.getElementById('progressIndicators');
+            container.innerHTML = '';
+            rallyData.stations.forEach((_, i) => {
+                let bg = 'bg-slate-200 text-slate-600';
+                if (solvedStations[i]) bg = 'bg-green-500 text-white';
+                else if (i === currentStationIndex) bg = 'bg-indigo-600 text-white ring-4 ring-indigo-200';
+                
+                container.innerHTML += `<div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${bg}">${i + 1}</div>`;
+            });
+        }
+
+        function renderActiveStation() {
+            const card = document.getElementById('activeStationCard');
+            if (currentStationIndex >= rallyData.stations.length) {
+                // All solved!
+                card.innerHTML = `
+                    <div class="text-center space-y-4 py-8">
+                        <div class="text-6xl animate-bounce-slow">🏆</div>
+                        <h3 class="text-3xl font-black text-green-600">Congratulations! Rally Completed!</h3>
+                        <p class="text-slate-600">You successfully solved all stations and uncovered the secret location:</p>
+                        <div class="text-4xl font-black tracking-widest text-indigo-600 bg-indigo-50 py-4 rounded-xl border border-indigo-100">${rallyData.targetWord}</div>
+                        <button onclick="initPlayMode()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow">Play Again 🔄</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const station = rallyData.stations[currentStationIndex];
+            const targetLetter = rallyData.targetWord[currentStationIndex] || '?';
+
+            card.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center text-sm font-semibold text-slate-500">
+                        <span>Station ${currentStationIndex + 1} of ${rallyData.stations.length} (${station.type})</span>
+                        <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">Reward Letter: <strong>${targetLetter}</strong></span>
+                    </div>
+                    <div class="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+                        <p class="text-sm font-medium text-indigo-900 uppercase tracking-wide">Clue:</p>
+                        <p class="text-lg font-bold text-indigo-950 mt-1">${station.clue}</p>
+                    </div>
+                    <div class="space-y-2 pt-2">
+                        <label class="block text-sm font-semibold text-slate-700">Your Answer:</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="userAnswerInput" placeholder="Type answer here..." class="flex-grow px-4 py-3 border rounded-xl font-bold uppercase focus:ring-2 focus:ring-indigo-500 outline-none text-lg">
+                            <button onclick="checkAnswer()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow transition">Submit</button>
+                        </div>
+                        <p id="feedbackMsg" class="text-sm font-medium pt-1"></p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function checkAnswer() {
+            const userAns = document.getElementById('userAnswerInput').value.toUpperCase().trim();
+            const correctAns = rallyData.stations[currentStationIndex].answer.toUpperCase().trim();
+            const feedback = document.getElementById('feedbackMsg');
+
+            if (userAns === correctAns) {
+                solvedStations[currentStationIndex] = true;
+                feedback.className = "text-sm font-bold text-green-600 pt-1";
+                feedback.textContent = "Correct! 🎉 Unlocking next station...";
+                setTimeout(() => {
+                    currentStationIndex++;
+                    renderPlayProgress();
+                    renderActiveStation();
+                }, 1200);
+            } else {
+                feedback.className = "text-sm font-bold text-red-500 pt-1";
+                feedback.textContent = "Incorrect! Try again.";
+            }
+        }
+
+        window.onload = initBuilder;
+    </script>
+</body>
+</html>
