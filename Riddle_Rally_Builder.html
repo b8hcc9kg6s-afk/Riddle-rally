@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riddle Rally Builder</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        h1, h2, h3, .font-fun {
+            font-family: 'Fredoka', cursive;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Glassmorphism & custom utility shadows */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid #e2e8f0;
+        }
+        .pop-shadow {
+            box-shadow: 0 10px 0px -2px rgba(15, 23, 42, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        /* Sliding puzzle tile animations */
+        .puzzle-tile {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-amber-50 via-indigo-50 to-teal-50 min-h-screen text-slate-800 pb-12">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 px-4 py-3 shadow-sm">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-amber-400 text-slate-900 p-2.5 rounded-2xl shadow-md transform -rotate-3">
+                    <i class="fa-solid fa-map-location-dot text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-wide text-slate-900 leading-tight">Riddle Rally Builder</h1>
+                    <p class="text-xs font-semibold text-amber-600">Free Classroom Treasure Hunt Creator</p>
+                </div>
+            </div>
+
+            <!-- Mode Switcher Tabs -->
+            <div class="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-sm font-semibold">
+                <button id="nav-build-btn" onclick="switchTab('build')" class="px-4 py-2 rounded-lg transition-all flex items-center space-x-2 bg-indigo-600 text-white shadow-sm">
+                    <i class="fa-solid fa-pen-ruler"></i>
+                    <span>1. Builder</span>
+                </button>
+                <button id="nav-play-btn" onclick="switchTab('play')" class="px-4 py-2 rounded-lg transition-all flex items-center space-x-2 text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-gamepad"></i>
+                    <span>2. Play / Preview</span>
+                </button>
+                <button id="nav-export-btn" onclick="switchTab('export')" class="px-4 py-2 rounded-lg transition-all flex items-center space-x-2 text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-share-nodes"></i>
+                    <span>3. Share & Host</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 mt-6">
+
+        <!-- ========================================== -->
+        <!-- TAB 1: BUILDER MODE                        -->
+        <!-- ========================================== -->
+        <section id="tab-build" class="space-y-6">
+            
+            <!-- Target Word Banner -->
+            <div class="glass-card rounded-2xl p-6 shadow-md border-l-8 border-l-amber-500">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold uppercase tracking-wider mb-2">Step 1: The Destination</span>
+                        <h2 class="text-2xl font-bold text-slate-900">Target Location / Secret Word</h2>
+                        <p class="text-sm text-slate-600">The secret location players reveal letter by letter as they solve riddles.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <input type="text" id="target-word-input" value="LIBRARY" uppercase max="15" 
+                            class="px-4 py-3 bg-white border-2 border-amber-300 rounded-xl font-mono text-2xl font-bold tracking-widest text-indigo-900 uppercase focus:outline-none focus:border-amber-500 shadow-inner w-56 text-center"
+                            oninput="updateTargetWord(this.value)">
+                    </div>
+                </div>
+
+                <!-- Letter Slot Visualizer -->
+                <div class="mt-6 pt-4 border-t border-slate-200">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Secret Word Preview & Riddle Mapping:</p>
+                    <div id="target-word-slots" class="flex flex-wrap gap-2">
+                        <!-- Dynamic letters rendered by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Puzzle List & Builder -->
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Left Column: Riddles List -->
+                <div class="w-full lg:w-1/3 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-indigo-600"></i> Riddles Sequence
+                        </h3>
+                        <span id="riddle-count-badge" class="px-2.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">5 Riddles</span>
+                    </div>
+
+                    <div id="riddle-list-container" class="space-y-3">
+                        <!-- Dynamic list items generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Right Column: Puzzle Editor -->
+                <div class="w-full lg:w-2/3">
+                    <div class="glass-card rounded-2xl p-6 shadow-md" id="editor-card">
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-200 mb-5">
+                            <div>
+                                <span id="editor-riddle-type-badge" class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-bold uppercase tracking-wider">
+                                    Crossword
+                                </span>
+                                <h3 class="text-xl font-bold text-slate-900 mt-1" id="editor-title">Configure Riddle #1</h3>
+                            </div>
+                            <div class="text-sm font-semibold text-slate-500">
+                                Output Letter: <span id="editor-target-letter" class="text-2xl font-black text-indigo-600 font-mono">L</span>
+                            </div>
+                        </div>
+
+                        <!-- Editor Form Container -->
+                        <div id="editor-form-fields" class="space-y-4">
+                            <!-- Dynamic Editor Inputs Inserted Here -->
+                        </div>
+
+                        <div class="mt-6 pt-4 border-t border-slate-200 flex justify-end">
+                            <button onclick="saveCurrentRiddleEdit()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-md transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-circle-check"></i> Save Riddle Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: PLAY / PREVIEW MODE                 -->
+        <!-- ========================================== -->
+        <section id="tab-play" class="hidden space-y-6">
+            
+            <!-- Progress & Target Word Reveal Header -->
+            <div class="glass-card rounded-2xl p-6 shadow-md text-center">
+                <span class="px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-xs font-bold uppercase tracking-wider">
+                    Interactive Player View
+                </span>
+                <h2 class="text-3xl font-black text-slate-900 mt-2 font-fun">Reveal The Secret Location!</h2>
+                <p class="text-slate-600 text-sm max-w-lg mx-auto mt-1">Solve each riddle to collect hidden letters. Uncover them all to find where the treasure is hidden!</p>
+
+                <!-- Revealed Letter Slots -->
+                <div id="play-target-slots" class="flex justify-center flex-wrap gap-2 sm:gap-3 my-6">
+                    <!-- Dynamic slots rendered here -->
+                </div>
+
+                <!-- Step Navigator -->
+                <div class="flex justify-center items-center gap-2 flex-wrap" id="play-step-buttons">
+                    <!-- Dynamic step buttons -->
+                </div>
+            </div>
+
+            <!-- Main Play Area Card -->
+            <div class="glass-card rounded-2xl p-6 sm:p-8 shadow-xl max-w-3xl mx-auto border-t-8 border-t-indigo-600" id="play-game-container">
+                <!-- Dynamic Game Content Rendered Here -->
+            </div>
+
+            <!-- Victory Celebration Modal/Overlay -->
+            <div id="victory-screen" class="hidden glass-card rounded-2xl p-8 shadow-2xl max-w-xl mx-auto text-center border-4 border-amber-400 bg-white">
+                <div class="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 animate-bounce">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h2 class="text-4xl font-black text-slate-900 font-fun mb-2">Rally Completed!</h2>
+                <p class="text-slate-600 font-medium mb-6">Congratulations! You solved all the puzzles and decoded the secret destination:</p>
+
+                <div id="victory-word-display" class="text-4xl sm:text-5xl font-black font-mono tracking-widest text-indigo-700 py-4 px-6 bg-amber-50 border-2 border-dashed border-amber-300 rounded-2xl mb-8 inline-block shadow-inner">
+                    LIBRARY
+                </div>
+
+                <div>
+                    <button onclick="restartPlayMode()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mx-auto">
+                        <i class="fa-solid fa-rotate-right"></i> Play Again
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: SHARE & FREE HOSTING GUIDE           -->
+        <!-- ========================================== -->
+        <section id="tab-export" class="hidden space-y-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Export / Import Card -->
+                <div class="glass-card rounded-2xl p-6 shadow-md flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-2 text-indigo-600 font-bold mb-2">
+                            <i class="fa-solid fa-file-export text-xl"></i>
+                            <h3 class="text-xl text-slate-900">Export / Save Rally Data</h3>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-4">Save your custom rally so you can load it anytime or share it directly with students.</p>
+
+                        <div class="space-y-3">
+                            <button onclick="downloadRallyJSON()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-sm">
+                                <i class="fa-solid fa-download"></i> Download Rally JSON File
+                            </button>
+                            
+                            <button onclick="copyShareableCode()" class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-sm">
+                                <i class="fa-solid fa-copy"></i> Copy Data URL / Configuration
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Import section -->
+                    <div class="mt-8 pt-6 border-t border-slate-200">
+                        <h4 class="font-bold text-slate-900 text-sm mb-2">Import Existing Rally</h4>
+                        <div class="flex gap-2">
+                            <input type="file" id="import-file-input" accept=".json" class="hidden" onchange="importRallyJSON(event)">
+                            <button onclick="document.getElementById('import-file-input').click()" class="w-full py-2.5 border-2 border-indigo-200 hover:border-indigo-400 text-indigo-700 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-upload"></i> Upload Saved .json Rally
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zero-Cost Hosting Explanation -->
+                <div class="glass-card rounded-2xl p-6 shadow-md bg-gradient-to-br from-slate-900 to-indigo-950 text-white">
+                    <div class="flex items-center gap-2 text-amber-400 font-bold mb-2">
+                        <i class="fa-solid fa-coins text-xl"></i>
+                        <h3 class="text-xl text-white">100% Free Lifetime Hosting</h3>
+                    </div>
+                    <p class="text-slate-300 text-sm mb-4">You do not need to spend any money! You can publish this interactive website directly using free cloud hosting from GitHub Pages or Vercel.</p>
+
+                    <div class="space-y-3 text-xs text-slate-200">
+                        <div class="p-3 bg-white/10 rounded-xl border border-white/10">
+                            <span class="font-bold text-amber-300">Why it's completely free:</span> Both GitHub Pages and Vercel offer generous free tiers for static front-end HTML/JS web apps with zero monthly costs or credit cards needed.
+                        </div>
+                        <div class="p-3 bg-white/10 rounded-xl border border-white/10">
+                            <span class="font-bold text-teal-300">Share with class:</span> Once hosted, students can open the web link on tablets, smartphones, or classroom laptops without installing any apps!
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step-by-Step Hosting Guide Tabs -->
+            <div class="glass-card rounded-2xl p-6 shadow-md">
+                <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-rocket text-indigo-600"></i> How to Host on GitHub Pages or Vercel
+                </h3>
+
+                <!-- Guide Sub-tabs -->
+                <div class="flex border-b border-slate-200 mb-6 gap-4">
+                    <button id="guide-gh-btn" onclick="switchGuide('github')" class="pb-2 font-bold text-indigo-600 border-b-2 border-indigo-600 text-sm">
+                        <i class="fa-brands fa-github mr-1"></i> Option A: GitHub Pages
+                    </button>
+                    <button id="guide-vc-btn" onclick="switchGuide('vercel')" class="pb-2 font-bold text-slate-500 hover:text-slate-800 text-sm">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> Option B: Vercel
+                    </button>
+                </div>
+
+                <!-- GitHub Guide Content -->
+                <div id="guide-github" class="space-y-4 text-sm text-slate-700">
+                    <ol class="list-decimal pl-5 space-y-3 font-medium">
+                        <li>
+                            <strong class="text-slate-900">Create a Free GitHub Account:</strong> Go to <a href="https://github.com" target="_blank" class="text-indigo-600 underline">github.com</a> and sign up for free.
+                        </li>
+                        <li>
+                            <strong class="text-slate-900">Save this Website File:</strong> Save this entire application code into a file named <code class="bg-slate-100 text-indigo-700 px-2 py-0.5 rounded font-mono font-bold">index.html</code> on your computer.
+                        </li>
+                        <li>
+                            <strong class="text-slate-900">Create a Repository:</strong> Click the <span class="bg-emerald-600 text-white px-2 py-0.5 rounded text-xs font-bold">+</span> icon on GitHub and select <em>New Repository</em>. Name it <code class="bg-slate-100 px-1.5 py-0.5 rounded">riddle-rally</code> and keep it Public.
+                        </li>
+                        <li>
+                            <strong class="text-slate-900">Upload index.html:</strong> Click <em>"uploading an existing file"</em>, drag your <code class="bg-slate-100 px-1.5 py-0.5 rounded">index.html</code>, and click <strong>Commit changes</strong>.
+                        </li>
+                        <li>
+                            <strong class="text-slate-900">Enable Pages:</strong> Go to <strong>Settings</strong> &rarr; <strong>Pages</strong>. Under <em>Build and deployment / Branch</em>, choose <code class="bg-slate-100 px-1.5 py-0.5 rounded">main</code> (or <code class="bg-slate-100 px-1.5 py-0.5 rounded">master</code>) and click <strong>Save</strong>.
+                        </li>
+                        <li>
+                            <strong class="text-slate-900">Done!</strong> In 1-2 minutes, GitHub will give you a live free URL like <code class="bg-slate-100 text-teal-700 px-2 py-0.5 rounded font-mono">https://yourusername.github.io/riddle-rally/</code> to share with your class!
+                        </li>
+                    </ol>
+                </div>
+
+                <!-- Vercel Guide Content -->
+                <div id="guide-vercel" class="hidden space-y-4 text-sm text-slate-700">
+                    <ol class="list-decimal pl-5 space-y-3 font-medium">
+                        <li>
+                            <strong class="text-slate-900">Create a Free Vercel Account:</strong> Sign up at <a href="https://vercel.com" target="_blank" class="text-indigo-600 underline">vercel.com</a> using your email or GitHub account.
+                        </li>
+                        <li>
+                            <strong class="text-slate-900">Install Vercel CLI (Optional) or Drag & Drop:</strong> You can simply link your GitHub repository (created in Option A) directly inside Vercel with 1 click.
+                        </li>
+                        <li>
+                            <strong class="text-slate-900">Instant Deployment:</strong> Vercel automatically detects the HTML page and deploys it in under 10 seconds.
+                        </li>
+                        <li>
+                            <strong class="text-slate-900">Custom Domain / Free Link:</strong> Vercel gives you a super-fast free link ending in <code class="bg-slate-100 text-indigo-700 px-2 py-0.5 rounded font-mono">.vercel.app</code>.
+                        </li>
+                    </ol>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Notification Toast Message -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 z-50">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toast-message" class="text-sm font-semibold">Message saved</span>
+    </div>
+
+    <!-- MAIN JAVASCRIPT APP LOGIC -->
+    <script>
+        // Default Rally Data State
+        let rallyData = {
+            targetWord: "LIBRARY",
+            riddles: [
+                {
+                    id: 0,
+                    type: "crossword",
+                    title: "Mini Grid Clue",
+                    targetLetter: "L",
+                    word: "LEARN",
+                    clue: "What you do at school to acquire new knowledge every day!",
+                    highlightIndex: 0 // Index of target letter in word
+                },
+                {
+                    id: 1,
+                    type: "sliding",
+                    title: "Picture Tile Slider",
+                    targetLetter: "I",
+                    hint: "A quiet place with millions of stories waiting to be read.",
+                    gridSize: 3 // 3x3 grid
+                },
+                {
+                    id: 2,
+                    type: "cipher",
+                    title: "Substitution Code Wheel",
+                    targetLetter: "B",
+                    encryptedMessage: "C23-O15-O15-K11", // Encrypted word BOOK
+                    solution: "BOOK",
+                    shiftKey: 3,
+                    clue: "Decode this word to find the secret letter (2nd letter of the answer)!"
+                },
+                {
+                    id: 3,
+                    type: "scramble",
+                    title: "Classroom Word Scramble",
+                    targetLetter: "R",
+                    scrambledWord: "E A R D I N G",
+                    unscrambledWord: "READING",
+                    clue: "Unscramble this word to reveal the mystery letter!",
+                    highlightIndex: 0 // 'R' is 1st letter
+                },
+                {
+                    id: 4,
+                    type: "logic",
+                    title: "Logic & Quiz Clue",
+                    targetLetter: "A",
+                    question: "I have keys but no locks. I have space but no room. You can enter, but you can't go outside. What am I?",
+                    options: ["A House", "A Keyboard", "A Backpack", "A School Bus"],
+                    correctIndex: 1,
+                    letterHint: "The 1st letter of the alphabet (A) is unlocked by this correct answer!"
+                }
+            ]
+        };
+
+        // Current Active States
+        let currentEditRiddleIndex = 0;
+        let playState = {
+            currentStep: 0,
+            unlockedLetters: {}, // Map step index -> true
+            slidingBoard: [],
+            slidingEmptyIndex: 8
+        };
+
+        // Initialize application on window load
+        window.onload = function() {
+            renderTargetWordSlots();
+            renderRiddleList();
+            loadRiddleEditor(0);
+        };
+
+        // Toast Notification Helper
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.innerText = message;
+            toastIcon.className = isError 
+                ? "fa-solid fa-triangle-exclamation text-rose-400 text-lg" 
+                : "fa-solid fa-circle-check text-emerald-400 text-lg";
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Navigation Tab Switcher
+        function switchTab(tabName) {
+            const tabs = ['build', 'play', 'export'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                const btn = document.getElementById(`nav-${t}-btn`);
+                if (t === tabName) {
+                    el.classList.remove('hidden');
+                    btn.className = "px-4 py-2 rounded-lg transition-all flex items-center space-x-2 bg-indigo-600 text-white shadow-sm";
+                } else {
+                    el.classList.add('hidden');
+                    btn.className = "px-4 py-2 rounded-lg transition-all flex items-center space-x-2 text-slate-600 hover:text-slate-900";
+                }
+            });
+
+            if (tabName === 'play') {
+                initPlayMode();
+            }
+        }
+
+        // Update Secret Target Word
+        function updateTargetWord(val) {
+            const clean = val.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 15);
+            document.getElementById('target-word-input').value = clean;
+            rallyData.targetWord = clean || "LIBRARY";
+            
+            // Adjust riddle count or target letters if needed
+            mapRiddlesToTargetWord();
+            renderTargetWordSlots();
+            renderRiddleList();
+            loadRiddleEditor(Math.min(currentEditRiddleIndex, rallyData.riddles.length - 1));
+        }
+
+        // Automatically align target letters across riddles
+        function mapRiddlesToTargetWord() {
+            const word = rallyData.targetWord;
+            rallyData.riddles.forEach((r, idx) => {
+                r.targetLetter = word[idx % word.length] || "A";
+            });
+        }
+
+        // Render Secret Word Letter Slot Visualizer
+        function renderTargetWordSlots() {
+            const container = document.getElementById('target-word-slots');
+            container.innerHTML = '';
+
+            const word = rallyData.targetWord;
+            for (let i = 0; i < word.length; i++) {
+                const char = word[i];
+                const riddleAssigned = rallyData.riddles[i % rallyData.riddles.length];
+                const slot = document.createElement('div');
+                slot.className = "flex flex-col items-center bg-white border-2 border-indigo-200 rounded-xl p-2.5 min-w-[50px] shadow-sm";
+                slot.innerHTML = `
+                    <span class="text-xs font-bold text-slate-400">#${i+1}</span>
+                    <span class="text-xl font-black font-mono text-indigo-700 my-0.5">${char}</span>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-full truncate max-w-[70px]">
+                        Riddle ${i+1}
+                    </span>
+                `;
+                container.appendChild(slot);
+            }
+        }
+
+        // Render Left Column Riddle Sequence Items
+        function renderRiddleList() {
+            const container = document.getElementById('riddle-list-container');
+            container.innerHTML = '';
+            document.getElementById('riddle-count-badge').innerText = `${rallyData.riddles.length} Riddles`;
+
+            const iconMap = {
+                crossword: 'fa-border-all',
+                sliding: 'fa-puzzle-piece',
+                cipher: 'fa-key',
+                scramble: 'fa-font',
+                logic: 'fa-lightbulb'
+            };
+
+            rallyData.riddles.forEach((r, idx) => {
+                const item = document.createElement('div');
+                const isActive = idx === currentEditRiddleIndex;
+                item.className = `p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                    isActive 
+                        ? 'bg-indigo-50 border-indigo-600 shadow-sm' 
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                }`;
+                item.onclick = () => loadRiddleEditor(idx);
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-lg flex items-center justify-center font-bold ${
+                            isActive ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                        }">
+                            <i class="fa-solid ${iconMap[r.type] || 'fa-question'}"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-sm leading-tight">${r.title}</h4>
+                            <span class="text-xs text-slate-500 capitalize">Type: ${r.type}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-mono font-black text-indigo-600 bg-indigo-100/60 px-2 py-1 rounded-md text-xs">
+                            Letter: ${r.targetLetter}
+                        </span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Load Dynamic Editor Inputs for Selected Riddle
+        function loadRiddleEditor(index) {
+            currentEditRiddleIndex = index;
+            renderRiddleList(); // Refresh active highlights
+
+            const r = rallyData.riddles[index];
+            document.getElementById('editor-title').innerText = `Configure Riddle #${index + 1}: ${r.title}`;
+            document.getElementById('editor-riddle-type-badge').innerText = r.type;
+            document.getElementById('editor-target-letter').innerText = r.targetLetter;
+
+            const form = document.getElementById('editor-form-fields');
+            form.innerHTML = '';
+
+            // Common Title Input
+            form.appendChild(createInputField("Riddle Title", "riddle_title", r.title, "text"));
+
+            // Type-specific field generation
+            if (r.type === 'crossword') {
+                form.appendChild(createInputField("Word Answer (must contain target letter)", "cw_word", r.word, "text"));
+                form.appendChild(createInputField("Clue / Hint Text", "cw_clue", r.clue, "text"));
+            } 
+            else if (r.type === 'sliding') {
+                form.appendChild(createInputField("Riddle Clue shown after solving", "slide_hint", r.hint, "text"));
+            } 
+            else if (r.type === 'cipher') {
+                form.appendChild(createInputField("Secret Word Answer", "cipher_sol", r.solution, "text"));
+                form.appendChild(createInputField("Clue Text", "cipher_clue", r.clue, "text"));
+            } 
+            else if (r.type === 'scramble') {
+                form.appendChild(createInputField("Unscrambled Correct Word", "scram_word", r.unscrambledWord, "text"));
+                form.appendChild(createInputField("Clue Text", "scram_clue", r.clue, "text"));
+            } 
+            else if (r.type === 'logic') {
+                form.appendChild(createInputField("Question / Riddle", "logic_q", r.question, "text"));
+                
+                // 4 Choices
+                r.options.forEach((opt, optIdx) => {
+                    form.appendChild(createInputField(`Option ${optIdx + 1}`, `logic_opt_${optIdx}`, opt, "text"));
+                });
+
+                // Correct choice dropdown
+                const selectGroup = document.createElement('div');
+                selectGroup.className = "space-y-1";
+                selectGroup.innerHTML = `
+                    <label class="block text-xs font-bold text-slate-600 uppercase">Correct Answer Choice</label>
+                    <select id="input_logic_correct" class="w-full px-3 py-2 border-2 border-slate-200 rounded-xl bg-white text-sm font-semibold focus:outline-none focus:border-indigo-500">
+                        ${r.options.map((_, oI) => `<option value="${oI}" ${oI === r.correctIndex ? 'selected' : ''}>Option ${oI + 1}</option>`).join('')}
+                    </select>
+                `;
+                form.appendChild(selectGroup);
+            }
+        }
+
+        // Helper to generate styled form input element
+        function createInputField(label, id, value, type = "text") {
+            const div = document.createElement('div');
+            div.className = "space-y-1";
+            div.innerHTML = `
+                <label class="block text-xs font-bold text-slate-600 uppercase">${label}</label>
+                <input type="${type}" id="input_${id}" value="${value}" 
+                    class="w-full px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-indigo-500 transition-all">
+            `;
+            return div;
+        }
+
+        // Save Current Editor Form back into state
+        function saveCurrentRiddleEdit() {
+            const r = rallyData.riddles[currentEditRiddleIndex];
+            r.title = document.getElementById('input_riddle_title').value || r.title;
+
+            if (r.type === 'crossword') {
+                r.word = (document.getElementById('input_cw_word').value || "LEARN").toUpperCase();
+                r.clue = document.getElementById('input_cw_clue').value || r.clue;
+                r.highlightIndex = Math.max(0, r.word.indexOf(r.targetLetter));
+            } 
+            else if (r.type === 'sliding') {
+                r.hint = document.getElementById('input_slide_hint').value || r.hint;
+            } 
+            else if (r.type === 'cipher') {
+                r.solution = (document.getElementById('input_cipher_sol').value || "BOOK").toUpperCase();
+                r.clue = document.getElementById('input_cipher_clue').value || r.clue;
+            } 
+            else if (r.type === 'scramble') {
+                r.unscrambledWord = (document.getElementById('input_scram_word').value || "READING").toUpperCase();
+                r.scrambledWord = r.unscrambledWord.split('').sort(() => 0.5 - Math.random()).join(' ');
+                r.clue = document.getElementById('input_scram_clue').value || r.clue;
+            } 
+            else if (r.type === 'logic') {
+                r.question = document.getElementById('input_logic_q').value || r.question;
+                r.options = [
+                    document.getElementById('input_logic_opt_0').value,
+                    document.getElementById('input_logic_opt_1').value,
+                    document.getElementById('input_logic_opt_2').value,
+                    document.getElementById('input_logic_opt_3').value
+                ];
+                r.correctIndex = parseInt(document.getElementById('input_logic_correct').value);
+            }
+
+            renderRiddleList();
+            showToast("Riddle settings updated successfully!");
+        }
+
+        // =========================================================================
+        // INTERACTIVE PLAY MODE / PREVIEW ENGINE
+        // =========================================================================
+
+        function initPlayMode() {
+            playState.currentStep = 0;
+            document.getElementById('victory-screen').classList.add('hidden');
+            document.getElementById('play-game-container').classList.remove('hidden');
+
+            renderPlaySlots();
+            renderPlayStepButtons();
+            loadPlayStep(0);
+        }
+
+        function restartPlayMode() {
+            playState.unlockedLetters = {};
+            initPlayMode();
+        }
+
+        function renderPlaySlots() {
+            const container = document.getElementById('play-target-slots');
+            container.innerHTML = '';
+
+            const word = rallyData.targetWord;
+            for (let i = 0; i < word.length; i++) {
+                const char = word[i];
+                const isUnlocked = playState.unlockedLetters[i];
+
+                const slot = document.createElement('div');
+                slot.className = `w-12 h-14 sm:w-14 sm:h-16 rounded-xl border-2 flex flex-col items-center justify-center font-mono font-black text-2xl sm:text-3xl transition-all shadow-md ${
+                    isUnlocked 
+                        ? 'bg-amber-400 border-amber-500 text-slate-900 scale-105 animate-pulse' 
+                        : 'bg-slate-100 border-slate-300 text-slate-300'
+                }`;
+                slot.innerText = isUnlocked ? char : '?';
+                container.appendChild(slot);
+            }
+        }
+
+        function renderPlayStepButtons() {
+            const container = document.getElementById('play-step-buttons');
+            container.innerHTML = '';
+
+            rallyData.riddles.forEach((r, idx) => {
+                const isUnlocked = playState.unlockedLetters[idx];
+                const isActive = idx === playState.currentStep;
+
+                const btn = document.createElement('button');
+                btn.onclick = () => loadPlayStep(idx);
+                btn.className = `px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center space-x-1.5 ${
+                    isActive 
+                        ? 'bg-indigo-600 text-white shadow-md' 
+                        : isUnlocked 
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
+                            : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                }`;
+
+                btn.innerHTML = `
+                    <span>Riddle ${idx + 1}</span>
+                    ${isUnlocked ? '<i class="fa-solid fa-check text-xs"></i>' : ''}
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function unlockStepLetter(stepIndex) {
+            playState.unlockedLetters[stepIndex] = true;
+            renderPlaySlots();
+            renderPlayStepButtons();
+
+            // Trigger mini confetti explosion
+            confetti({
+                particleCount: 40,
+                spread: 60,
+                origin: { y: 0.6 }
+            });
+
+            // Check total victory
+            const totalLetters = rallyData.targetWord.length;
+            const unlockedCount = Object.keys(playState.unlockedLetters).length;
+
+            if (unlockedCount >= Math.min(totalLetters, rallyData.riddles.length)) {
+                setTimeout(showVictoryScreen, 1200);
+            }
+        }
+
+        function showVictoryScreen() {
+            document.getElementById('play-game-container').classList.add('hidden');
+            const vic = document.getElementById('victory-screen');
+            vic.classList.remove('hidden');
+            document.getElementById('victory-word-display').innerText = rallyData.targetWord;
+
+            // Grand Victory Confetti Cannon
+            const duration = 3 * 1000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 }
+                });
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 }
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            })();
+        }
+
+        // Render current step game screen
+        function loadPlayStep(index) {
+            playState.currentStep = index;
+            renderPlayStepButtons();
+
+            const container = document.getElementById('play-game-container');
+            const r = rallyData.riddles[index];
+            const isSolved = playState.unlockedLetters[index];
+
+            container.innerHTML = '';
+
+            // Header Banner
+            const header = document.createElement('div');
+            header.className = "mb-6 pb-4 border-b border-slate-200 flex justify-between items-center";
+            header.innerHTML = `
+                <div>
+                    <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Puzzle Step ${index + 1} of ${rallyData.riddles.length}</span>
+                    <h3 class="text-2xl font-bold text-slate-900">${r.title}</h3>
+                </div>
+                <span class="px-3 py-1 bg-amber-100 text-amber-900 font-bold text-xs rounded-full flex items-center gap-1">
+                    <i class="fa-solid fa-key"></i> Letter: <strong class="text-indigo-700 font-mono text-sm">${r.targetLetter}</strong>
+                </span>
+            `;
+            container.appendChild(header);
+
+            // Game Body by Type
+            const gameBody = document.createElement('div');
+
+            if (r.type === 'crossword') {
+                renderCrosswordGame(gameBody, r, index);
+            } else if (r.type === 'sliding') {
+                renderSlidingPuzzleGame(gameBody, r, index);
+            } else if (r.type === 'cipher') {
+                renderCipherGame(gameBody, r, index);
+            } else if (r.type === 'scramble') {
+                renderScrambleGame(gameBody, r, index);
+            } else if (r.type === 'logic') {
+                renderLogicGame(gameBody, r, index);
+            }
+
+            container.appendChild(gameBody);
+        }
+
+        // 1. Crossword / Mini Grid Renderer
+        function renderCrosswordGame(container, riddle, stepIdx) {
+            const isSolved = playState.unlockedLetters[stepIdx];
+            const targetChar = riddle.targetLetter;
+
+            container.innerHTML = `
+                <div class="space-y-6 text-center">
+                    <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl text-slate-800 text-sm font-semibold">
+                        <i class="fa-solid fa-lightbulb text-amber-500 mr-2 text-base"></i> Clue: ${riddle.clue}
+                    </div>
+
+                    <div class="flex justify-center items-center gap-2" id="cw-inputs-wrapper">
+                        ${riddle.word.split('').map((char, cIdx) => {
+                            const isTargetSlot = char === targetChar;
+                            return `
+                                <input type="text" maxlength="1" 
+                                    class="cw-cell w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black font-mono uppercase rounded-xl border-2 transition-all ${
+                                        isTargetSlot 
+                                            ? 'bg-amber-100 border-amber-400 text-amber-900' 
+                                            : 'bg-white border-slate-300 text-slate-800'
+                                    } focus:outline-none focus:border-indigo-600 shadow-sm"
+                                    data-char="${char}"
+                                    ${isSolved ? `value="${char}" disabled` : ''}
+                                >
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div>
+                        <button id="cw-submit-btn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all">
+                            Check Answer
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            if (!isSolved) {
+                const inputs = container.querySelectorAll('.cw-cell');
+                inputs.forEach((inp, i) => {
+                    inp.oninput = (e) => {
+                        if (e.target.value && i < inputs.length - 1) {
+                            inputs[i + 1].focus();
+                        }
+                    };
+                });
+
+                container.querySelector('#cw-submit-btn').onclick = () => {
+                    let entered = '';
+                    inputs.forEach(inp => entered += (inp.value || '').toUpperCase());
+                    if (entered === riddle.word) {
+                        showToast("Correct! Letter Unlocked.");
+                        unlockStepLetter(stepIdx);
+                        loadPlayStep(stepIdx);
+                    } else {
+                        showToast("Incorrect answer. Try again!", true);
+                    }
+                };
+            }
+        }
+
+        // 2. Sliding Tile Puzzle Renderer
+        function renderSlidingPuzzleGame(container, riddle, stepIdx) {
+            const isSolved = playState.unlockedLetters[stepIdx];
+
+            if (isSolved) {
+                container.innerHTML = `
+                    <div class="text-center space-y-4 py-6">
+                        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-slate-900">Puzzle Solved!</h4>
+                        <p class="text-sm text-slate-600 max-w-md mx-auto">${riddle.hint}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Init board state 3x3
+            if (!playState.slidingBoard || playState.slidingBoard.length !== 9) {
+                playState.slidingBoard = [1, 2, 3, 4, 5, 6, 7, 0, 8]; // solvable state
+                playState.slidingEmptyIndex = 7;
+            }
+
+            container.innerHTML = `
+                <div class="space-y-4 text-center">
+                    <p class="text-xs font-semibold text-slate-500">Click tiles adjacent to the empty slot to rearrange numbers 1 to 8 in order!</p>
+                    
+                    <div id="sliding-grid" class="grid grid-cols-3 gap-2 w-64 h-64 mx-auto p-3 bg-slate-800 rounded-2xl shadow-xl">
+                    </div>
+
+                    <button onclick="unlockStepLetter(${stepIdx}); loadPlayStep(${stepIdx});" class="text-xs text-indigo-600 hover:underline">
+                        Skip Puzzle / Solve Instantly
+                    </button>
+                </div>
+            `;
+
+            renderSlidingGrid(stepIdx);
+        }
+
+        function renderSlidingGrid(stepIdx) {
+            const grid = document.getElementById('sliding-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            playState.slidingBoard.forEach((val, idx) => {
+                const cell = document.createElement('button');
+                if (val === 0) {
+                    cell.className = "bg-slate-700/50 rounded-xl";
+                } else {
+                    cell.className = "puzzle-tile bg-gradient-to-br from-amber-400 to-amber-500 text-slate-900 font-black text-2xl rounded-xl shadow-md flex items-center justify-center hover:brightness-105 active:scale-95";
+                    cell.innerText = val;
+                    cell.onclick = () => moveSlidingTile(idx, stepIdx);
+                }
+                grid.appendChild(cell);
+            });
+        }
+
+        function moveSlidingTile(idx, stepIdx) {
+            const empty = playState.slidingEmptyIndex;
+            const validMoves = [empty - 1, empty + 1, empty - 3, empty + 3];
+
+            // Prevent horizontal wrap moves
+            if ((empty % 3 === 0 && idx === empty - 1) || (empty % 3 === 2 && idx === empty + 1)) {
+                return;
+            }
+
+            if (validMoves.includes(idx)) {
+                // Swap
+                playState.slidingBoard[empty] = playState.slidingBoard[idx];
+                playState.slidingBoard[idx] = 0;
+                playState.slidingEmptyIndex = idx;
+                renderSlidingGrid(stepIdx);
+
+                // Check win condition [1,2,3,4,5,6,7,8,0]
+                const winPattern = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+                if (playState.slidingBoard.every((v, i) => v === winPattern[i])) {
+                    showToast("Puzzle Solved!");
+                    unlockStepLetter(stepIdx);
+                    loadPlayStep(stepIdx);
+                }
+            }
+        }
+
+        // 3. Substitution Cipher Wheel Game
+        function renderCipherGame(container, riddle, stepIdx) {
+            const isSolved = playState.unlockedLetters[stepIdx];
+
+            container.innerHTML = `
+                <div class="space-y-6 text-center">
+                    <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl text-slate-800 text-sm font-semibold">
+                        <i class="fa-solid fa-key text-indigo-600 mr-2"></i> ${riddle.clue}
+                    </div>
+
+                    <!-- Cipher Clue Table -->
+                    <div class="p-4 bg-slate-900 text-white rounded-2xl space-y-2 shadow-inner">
+                        <div class="text-xs uppercase font-bold text-amber-400">Substitution Key Table (+3 Shift)</div>
+                        <div class="flex justify-center flex-wrap gap-2 text-xs font-mono">
+                            <span class="px-2 py-1 bg-white/10 rounded">B = E</span>
+                            <span class="px-2 py-1 bg-white/10 rounded">O = R</span>
+                            <span class="px-2 py-1 bg-white/10 rounded">K = N</span>
+                            <span class="px-2 py-1 bg-white/10 rounded">A = D</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-slate-500 uppercase">Enter Decoded Word</label>
+                        <input type="text" id="cipher-input" value="${isSolved ? riddle.solution : ''}" ${isSolved ? 'disabled' : ''} 
+                            class="w-56 px-4 py-3 border-2 border-slate-300 rounded-xl font-mono text-2xl text-center uppercase tracking-widest font-black focus:outline-none focus:border-indigo-600 shadow-sm">
+                    </div>
+
+                    ${!isSolved ? `
+                        <div>
+                            <button id="cipher-btn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all">
+                                Unlock Letter
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            if (!isSolved) {
+                container.querySelector('#cipher-btn').onclick = () => {
+                    const val = (document.getElementById('cipher-input').value || '').trim().toUpperCase();
+                    if (val === riddle.solution) {
+                        showToast("Cipher Decoded!");
+                        unlockStepLetter(stepIdx);
+                        loadPlayStep(stepIdx);
+                    } else {
+                        showToast("Incorrect decoded word!", true);
+                    }
+                };
+            }
+        }
+
+        // 4. Word Scramble Game
+        function renderScrambleGame(container, riddle, stepIdx) {
+            const isSolved = playState.unlockedLetters[stepIdx];
+
+            container.innerHTML = `
+                <div class="space-y-6 text-center">
+                    <div class="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl text-slate-800 text-sm font-semibold">
+                        <i class="fa-solid fa-font text-teal-600 mr-2"></i> ${riddle.clue}
+                    </div>
+
+                    <div class="py-4">
+                        <span class="text-3xl sm:text-4xl font-black font-mono tracking-widest text-indigo-900 bg-amber-100 px-6 py-3 rounded-2xl border-2 border-amber-300 shadow-inner inline-block">
+                            ${riddle.scrambledWord}
+                        </span>
+                    </div>
+
+                    <div class="space-y-2">
+                        <input type="text" id="scramble-input" value="${isSolved ? riddle.unscrambledWord : ''}" ${isSolved ? 'disabled' : ''} 
+                            placeholder="Type unscrambled word..."
+                            class="w-64 px-4 py-3 border-2 border-slate-300 rounded-xl font-mono text-xl text-center uppercase font-bold focus:outline-none focus:border-indigo-600 shadow-sm">
+                    </div>
+
+                    ${!isSolved ? `
+                        <div>
+                            <button id="scramble-btn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all">
+                                Submit Word
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            if (!isSolved) {
+                container.querySelector('#scramble-btn').onclick = () => {
+                    const val = (document.getElementById('scramble-input').value || '').trim().toUpperCase();
+                    if (val === riddle.unscrambledWord) {
+                        showToast("Unscrambled successfully!");
+                        unlockStepLetter(stepIdx);
+                        loadPlayStep(stepIdx);
+                    } else {
+                        showToast("Try again!", true);
+                    }
+                };
+            }
+        }
+
+        // 5. Logic Grid / Multiple Choice Riddle
+        function renderLogicGame(container, riddle, stepIdx) {
+            const isSolved = playState.unlockedLetters[stepIdx];
+
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="p-5 bg-indigo-900 text-white rounded-2xl shadow-md">
+                        <p class="text-base font-bold leading-relaxed">${riddle.question}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="logic-opts">
+                        ${riddle.options.map((opt, oIdx) => `
+                            <button class="logic-opt-btn p-4 rounded-xl border-2 border-slate-200 hover:border-indigo-500 font-bold text-left text-sm transition-all flex items-center justify-between ${
+                                isSolved && oIdx === riddle.correctIndex ? 'bg-emerald-100 border-emerald-500 text-emerald-900' : 'bg-white text-slate-800'
+                            }" data-index="${oIdx}" ${isSolved ? 'disabled' : ''}>
+                                <span>${opt}</span>
+                                <i class="fa-regular fa-circle text-slate-300"></i>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            if (!isSolved) {
+                container.querySelectorAll('.logic-opt-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const selectedIdx = parseInt(btn.getAttribute('data-index'));
+                        if (selectedIdx === riddle.correctIndex) {
+                            showToast("Logic riddle solved!");
+                            unlockStepLetter(stepIdx);
+                            loadPlayStep(stepIdx);
+                        } else {
+                            showToast("Not quite! Think again.", true);
+                        }
+                    };
+                });
+            }
+        }
+
+        // =========================================================================
+        // EXPORT / IMPORT / DEPLOYMENT HELPERS
+        // =========================================================================
+
+        function downloadRallyJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(rallyData, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `riddle-rally-${rallyData.targetWord.toLowerCase()}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+            showToast("JSON rally configuration downloaded!");
+        }
+
+        function copyShareableCode() {
+            const jsonString = JSON.stringify(rallyData);
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = jsonString;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+            showToast("Rally JSON configuration copied to clipboard!");
+        }
+
+        function importRallyJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.targetWord && Array.isArray(parsed.riddles)) {
+                        rallyData = parsed;
+                        document.getElementById('target-word-input').value = rallyData.targetWord;
+                        mapRiddlesToTargetWord();
+                        renderTargetWordSlots();
+                        renderRiddleList();
+                        loadRiddleEditor(0);
+                        showToast("Rally configuration imported!");
+                    } else {
+                        showToast("Invalid rally JSON format", true);
+                    }
+                } catch(err) {
+                    showToast("Error reading file JSON", true);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function switchGuide(type) {
+            const ghBtn = document.getElementById('guide-gh-btn');
+            const vcBtn = document.getElementById('guide-vc-btn');
+            const ghContent = document.getElementById('guide-github');
+            const vcContent = document.getElementById('guide-vercel');
+
+            if (type === 'github') {
+                ghBtn.className = "pb-2 font-bold text-indigo-600 border-b-2 border-indigo-600 text-sm";
+                vcBtn.className = "pb-2 font-bold text-slate-500 hover:text-slate-800 text-sm";
+                ghContent.classList.remove('hidden');
+                vcContent.classList.add('hidden');
+            } else {
+                vcBtn.className = "pb-2 font-bold text-indigo-600 border-b-2 border-indigo-600 text-sm";
+                ghBtn.className = "pb-2 font-bold text-slate-500 hover:text-slate-800 text-sm";
+                vcContent.classList.remove('hidden');
+                ghContent.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
